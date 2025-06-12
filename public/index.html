@@ -3,63 +3,1038 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Cycle: Reborn - Save Editor Community Edition</title>
-    <link rel="stylesheet" href="style.css">
+    <title>The Cycle: Reborn - Save Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Custom Title Bar */
+        .custom-title-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: rgba(20, 25, 40, 0.95);
+            border-bottom: 1px solid #4a5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            -webkit-app-region: drag;
+            backdrop-filter: blur(10px);
+        }
+
+        .title-bar-title {
+            color: #64ffda;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 15px;
+            text-shadow: 0 0 5px rgba(100, 255, 218, 0.3);
+        }
+
+        .title-bar-controls {
+            display: flex;
+            -webkit-app-region: no-drag;
+        }
+
+        .title-bar-button {
+            width: 46px;
+            height: 30px;
+            border: none;
+            background: transparent;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 14px;
+        }
+
+        .title-bar-button:hover {
+            background: rgba(100, 255, 218, 0.1);
+            color: #64ffda;
+        }
+
+        .title-bar-button.close:hover {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .title-bar-button svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Adjust container for title bar */
+        .container {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 30px; /* Space for title bar */
+            padding-bottom: 80px; /* Space for status bar */
+        }
+
+        /* Hide default scrollbar */
+        body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: rgba(45, 55, 75, 0.8);
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: #64ffda;
+            border-radius: 4px;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: #4fd1c7;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: rgba(20, 25, 40, 0.9);
+            padding: 15px;
+            padding-bottom: 120px;
+            border-right: 2px solid #4a5568;
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 30px; /* Adjusted for title bar */
+            left: 0;
+            height: calc(100vh - 30px); /* Adjusted for title bar */
+            overflow-y: auto;
+            z-index: 50;
+        }
+
+        .sidebar h2 {
+            color: #64ffda;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.1em;
+            border-bottom: 2px solid #4a5568;
+            padding-bottom: 8px;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        .filter-section h3 {
+            color: #a0aec0;
+            margin-bottom: 8px;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .filter-btn, .category-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 3px;
+            background: rgba(45, 55, 75, 0.8);
+            border: 1px solid #4a5568;
+            color: #e0e0e0;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            font-size: 0.8em;
+            line-height: 1.2;
+        }
+
+        .filter-btn:hover, .category-btn:hover {
+            background: rgba(100, 255, 218, 0.2);
+            border-color: #64ffda;
+            transform: translateX(5px);
+        }
+
+        .filter-btn.active, .category-btn.active {
+            background: linear-gradient(135deg, #64ffda 0%, #4fd1c7 100%);
+            color: #1a202c;
+            border-color: #64ffda;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            padding-bottom: 100px;
+            padding-left: 240px;
+            overflow-y: auto;
+        }
+
+        /* Hide scrollbar for main content when browse items is open */
+        .main-content.hide-scrollbar {
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex; /* Change from grid to flex */
+            justify-content: space-between; /* Space between left and right */
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px 30px;
+            background: rgba(20, 25, 40, 0.8);
+            border-radius: 10px;
+            border: 1px solid #4a5568;
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .header-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 {
+            color: #64ffda;
+            font-size: 2em;
+            text-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+        }
+
+        .currency-display {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 5px;
+            margin-left: auto;
+        }
+
+        .currency-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 8px;
+            border-radius: 15px;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+        }
+
+        .currency-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-color: rgba(45, 55, 75, 0.8);
+        }
+
+        .currency-item input {
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            font-size: 14px;
+            text-align: right;
+            /* Remove spinner arrows */
+            -webkit-appearance: textfield;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .currency-item input::-webkit-outer-spin-button,
+        .currency-item input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .currency-item input:focus {
+            outline: none;
+            color: #64ffda;
+        }
+
+        /* Dynamic width based on value length */
+        #aurum-value {
+            width: 45px; /* Smaller for aurum (usually lower numbers) */
+        }
+
+        #kmarks-value {
+            width: 65px; /* Larger for K-marks (can be 6 digits) */
+        }
+
+        #insurance-value {
+            width: 35px; /* Medium for insurance credits */
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .header-buttons .btn {
+            padding: 6px 10px;
+            font-size: 0.75em;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            min-width: auto;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .header-buttons .btn svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .btn-update:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(45, 55, 75, 0.8);
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #64ffda;
+            background: rgba(45, 55, 75, 1);
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.2);
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: rgba(20, 25, 40, 0.6);
+            border-radius: 10px;
+            border: 1px solid #4a5568;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .item-slot {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            padding: 8px;
+        }
+
+        .item-slot:hover {
+            border-color: #64ffda;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(100, 255, 218, 0.2);
+        }
+
+        .item-slot.empty {
+            border-style: dashed;
+            border-color: #4a5568;
+        }
+
+        .item-slot.empty:hover {
+            border-color: #64ffda;
+            background: rgba(100, 255, 218, 0.1);
+        }
+
+        .item-image {
+            width: 60px;
+            height: 60px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .item-image.placeholder {
+            background: #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            text-align: center;
+            color: #a0aec0;
+        }
+
+        /* Rarity borders for item images */
+        .item-image.rarity-common {
+            border: 2px solid #9e9e9e;
+            box-shadow: 0 0 8px rgba(158, 158, 158, 0.4);
+        }
+
+        .item-image.rarity-uncommon {
+            border: 2px solid #4caf50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+        }
+
+        .item-image.rarity-rare {
+            border: 2px solid #2196f3;
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.4);
+        }
+
+        .item-image.rarity-epic {
+            border: 2px solid #9c27b0;
+            box-shadow: 0 0 8px rgba(156, 39, 176, 0.4);
+        }
+
+        .item-image.rarity-exotic {
+            border: 2px solid #ff4e4e;
+            box-shadow: 0 0 8px rgba(255, 78, 78, 0.4);
+        }
+
+        .item-image.rarity-legendary {
+            border: 2px solid #ff9800;
+            box-shadow: 0 0 8px rgba(255, 152, 0, 0.4);
+        }
+
+        .item-amount {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #64ffda;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .item-name {
+            font-size: 0.7em;
+            text-align: center;
+            color: #a0aec0;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .available-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            max-height: calc(100vh - 380px);
+            overflow-y: auto;
+            padding-right: 10px;
+            padding-bottom: 20px;
+        }
+
+        /* Custom scrollbar for available items */
+        .available-items::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .available-items::-webkit-scrollbar-track {
+            background: rgba(45, 55, 75, 0.8);
+            border-radius: 4px;
+        }
+
+        .available-items::-webkit-scrollbar-thumb {
+            background: #64ffda;
+            border-radius: 4px;
+        }
+
+        .available-items::-webkit-scrollbar-thumb:hover {
+            background: #4fd1c7;
+        }
+
+        .available-item {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+            min-height: 80px;
+        }
+
+        .available-item:hover {
+            border-color: #64ffda;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(100, 255, 218, 0.2);
+        }
+
+        .available-item:hover .available-item-controls {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .available-item-icon {
+            width: 50px;
+            height: 50px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            flex-shrink: 0;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        /* Rarity borders for available item icons */
+        .available-item-icon.rarity-common {
+            border: 2px solid #9e9e9e;
+            box-shadow: 0 0 6px rgba(158, 158, 158, 0.4);
+        }
+
+        .available-item-icon.rarity-uncommon {
+            border: 2px solid #4caf50;
+            box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+        }
+
+        .available-item-icon.rarity-rare {
+            border: 2px solid #2196f3;
+            box-shadow: 0 0 6px rgba(33, 150, 243, 0.4);
+        }
+
+        .available-item-icon.rarity-epic {
+            border: 2px solid #9c27b0;
+            box-shadow: 0 0 6px rgba(156, 39, 176, 0.4);
+        }
+
+        .available-item-icon.rarity-exotic {
+            border: 2px solid #ff4e4e;
+            box-shadow: 0 0 6px rgba(255, 78, 78, 0.4);
+        }
+
+        .available-item-icon.rarity-legendary {
+            border: 2px solid #ff9800;
+            box-shadow: 0 0 6px rgba(255, 152, 0, 0.4);
+        }
+
+        .available-item-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .available-item h4 {
+            color: #64ffda;
+            margin-bottom: 5px;
+            font-size: 1em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Rarity colors for item names */
+        .available-item h4.rarity-common { color: #9e9e9e; }
+        .available-item h4.rarity-uncommon { color: #4caf50; }
+        .available-item h4.rarity-rare { color: #2196f3; }
+        .available-item h4.rarity-epic { color: #9c27b0; }
+        .available-item h4.rarity-exotic { color: #ff4e4e; }
+        .available-item h4.rarity-legendary { color: #ff9800; }
+
+        .available-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s ease;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%) translateX(20px);
+            background: rgba(20, 25, 40, 0.95);
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .available-item:hover .available-item-controls {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .quantity-input {
+            width: 60px;
+            padding: 5px 8px;
+            background: rgba(45, 55, 75, 0.8);
+            border: 1px solid #4a5568;
+            border-radius: 4px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            margin: 5% auto;
+            padding: 30px;
+            border: 2px solid #64ffda;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 600px;
+            color: #e0e0e0;
+            box-shadow: 0 20px 60px rgba(100, 255, 218, 0.3);
+        }
+
+        .close {
+            color: #a0aec0;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #64ffda;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(20, 25, 40, 0.95);
+            padding: 15px;
+            border-top: 2px solid #4a5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 900;
+        }
+
+        .status-center {
+            color: rgba(160, 174, 192, 0.6);
+            font-size: 0.8em;
+            text-align: center;
+        }
+
+        .status-text {
+            color: #a0aec0;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #64ffda;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #64ffda;
+            font-size: 1.2em;
+        }
+
+        .spinner {
+            border: 3px solid rgba(100, 255, 218, 0.3);
+            border-top: 3px solid #64ffda;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .scrollbar-style {
+            scrollbar-width: thin;
+            scrollbar-color: #64ffda rgba(45, 55, 75, 0.8);
+        }
+
+        .scrollbar-style::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-track {
+            background: rgba(45, 55, 75, 0.8);
+            border-radius: 4px;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-thumb {
+            background: #64ffda;
+            border-radius: 4px;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-thumb:hover {
+            background: #4fd1c7;
+        }
+
+        .item-detail-modal {
+            text-align: center;
+        }
+
+        .item-detail-icon {
+            width: 100px;
+            height: 100px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin: 0 auto 20px auto;
+            border: 2px solid #4a5568;
+            border-radius: 8px;
+        }
+
+        .durability-slider-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(45, 55, 75, 0.5);
+            border-radius: 8px;
+        }
+
+        .durability-slider {
+            width: 100%;
+            margin: 10px 0;
+            appearance: none;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(100, 255, 218, 0.3);
+            outline: none;
+        }
+
+        .durability-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #64ffda;
+            cursor: pointer;
+        }
+
+        .durability-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #64ffda;
+            cursor: pointer;
+            border: none;
+        }
+
+        .durability-value {
+            color: #64ffda;
+            font-weight: bold;
+        }
+
+        .auto-save-indicator {
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .auto-save-indicator.show {
+            opacity: 1;
+        }
+
+        /* Image loading and error handling */
+        .item-image, .available-item-icon, .item-detail-icon {
+            background-color: rgba(45, 55, 75, 0.8);
+        }
+
+        .item-image.error, .available-item-icon.error, .item-detail-icon.error {
+            background-image: none !important;
+            background-color: #4a5568;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            color: #a0aec0;
+            text-align: center;
+        }
+
+        .item-image.error::before, .available-item-icon.error::before {
+            content: "IMG";
+        }
+
+        .item-detail-icon.error::before {
+            content: "No Image";
+        }
+
+        .github-link {
+            color: #a0aec0;
+            transition: all 0.3s ease;
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .github-link:hover {
+            color: #64ffda;
+            background: rgba(100, 255, 218, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .github-link svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .reload-btn {
+            color: #a0aec0;
+            background: none;
+            border: none;
+            transition: all 0.3s ease;
+            padding: 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .reload-btn:hover {
+            color: #64ffda;
+            background: rgba(100, 255, 218, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .reload-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .footer-credit {
+            position: fixed;
+            bottom: 50px; /* Just above the status bar */
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(160, 174, 192, 0.6);
+            font-size: 0.7em;
+            z-index: 800;
+            pointer-events: none; /* Won't interfere with clicks */
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Auto-updater specific styles */
+        .version-info {
+            position: fixed;
+            bottom: 50px;
+            right: 20px;
+            color: rgba(160, 174, 192, 0.6);
+            font-size: 0.7em;
+            z-index: 800;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .update-available-indicator {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            animation: pulse-update 2s infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes pulse-update {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Update notification styles */
+        .update-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            animation: slideInFromRight 0.5s ease-out;
+        }
+
+        @keyframes slideInFromRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Enhanced button styles for update */
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        /* Electron app specific styles */
+        .electron-app {
+            user-select: none;
+        }
+
+        .electron-app input, .electron-app textarea {
+            user-select: text;
+        }
+
+        .packaged-app .dev-only {
+            display: none !important;
+        }
+
+        /* Loading state for update button */
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn:disabled:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+    </style>
 </head>
 <body>
     <!-- Custom Title Bar -->
     <div class="custom-title-bar">
-        <div class="title-bar-title">The Cycle: Reborn - Save Editor Community Edition</div>
+        <div class="title-bar-title">The Cycle: Reborn - Save Editor</div>
         <div class="title-bar-controls" id="title-bar-controls">
             <!-- Window controls will be added by JavaScript if in Electron -->
         </div>
     </div>
 
     <div class="container">
-        <!-- Enhanced Sidebar -->
         <div class="sidebar">
-            <h2>NAVIGATION</h2>
+            <h2>FILTERS</h2>
             
-            <div class="filter-section">
-                <h3>Core Features</h3>
-                <button class="nav-btn active" data-view="inventory">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 7h-3V6a4 4 0 0 0-8 0v1H5a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a1 1 0 0 0-1-1zM10 6a2 2 0 0 1 4 0v1h-4V6zm8 13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9h2v1a1 1 0 0 0 2 0V9h4v1a1 1 0 0 0 2 0V9h2v10z"/>
-                    </svg>
-                    INVENTORY
-                </button>
-                <button class="nav-btn" data-view="loadout-editor">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
-                        <path d="M12 6a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"/>
-                    </svg>
-                    LOADOUT EDITOR
-                </button>
-                <button class="nav-btn" data-view="faction-editor">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                    </svg>
-                    FACTION EDITOR
-                </button>
-            </div>
-
-            <div class="filter-section">
-                <h3>Community Features</h3>
-                <button class="nav-btn" data-view="community-inventories">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16 4h-4V2a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2H0v2h2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6h2V4zM6 2h4v2H6V2zm10 18H4V6h12v14z"/>
-                        <path d="M6 8h8v2H6zM6 12h8v2H6zM6 16h8v2H6z"/>
-                    </svg>
-                    COMMUNITY INVENTORIES
-                </button>
-                <button class="nav-btn" data-view="community-loadouts">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                    </svg>
-                    COMMUNITY LOADOUTS
-                </button>
-            </div>
-
             <div class="filter-section">
                 <h3>Categories</h3>
                 <button class="category-btn active" data-category="all">ALL</button>
@@ -99,332 +1074,74 @@
                     Check Updates
                 </button>
             </div>
+       
         </div>
 
-        <!-- Main Content -->
         <div class="main-content" id="main-content">
-            <!-- Header -->
             <div class="header">
                 <div class="header-left">
-                    <h1 id="current-view-title">Inventory Editor</h1>
+                    <h1>The Cycle: Reborn - Save Editor</h1>
                 </div>
                 <div class="header-right">
-                    <!-- User Profile (shown when logged in) -->
-                    <div class="user-profile" id="user-profile" style="display: none;">
-                        <div class="user-avatar" id="user-avatar">U</div>
-                        <div class="user-name" id="user-name">Guest</div>
-                        <button class="btn btn-danger btn-sm" id="logout-btn">Logout</button>
-                    </div>
-                    
-                    <!-- Login Button (shown when not logged in) -->
-                    <button class="btn btn-github" id="login-btn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
-                        Login to Access Community
-                    </button>
-                </div>
-
-                <!-- Community loadouts content (shown when authenticated) -->
-                <div id="community-loadouts-content" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                        <div class="search-container" style="flex: 1; margin-right: 20px; margin-bottom: 0;">
-                            <input type="text" class="search-input" id="search-community-loadouts" placeholder="Search community loadouts...">
+                    <div class="currency-display">
+                        <div class="currency-item" id="aurum-display">
+                            <div class="currency-icon" style="background-image: url('https://lxjo101.github.io/TheCycleRebornSaveEditor-Assets/icons/Aurum.png')"></div>
+                            <input type="number" id="aurum-value" value="0" min="0" max="999999">
                         </div>
-                        <button class="btn btn-primary" id="upload-loadout-btn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                        <div class="currency-item" id="kmarks-display">
+                            <div class="currency-icon" style="background-image: url('https://lxjo101.github.io/TheCycleRebornSaveEditor-Assets/icons/K-Marks.png')"></div>
+                            <input type="number" id="kmarks-value" value="0" min="0" max="999999">
+                        </div>
+                        <div class="currency-item" id="insurance-display">
+                            <div class="currency-icon" style="background-image: url('https://lxjo101.github.io/TheCycleRebornSaveEditor-Assets/icons/InsuranceToken.png')"></div>
+                            <input type="number" id="insurance-value" value="0" min="0" max="999999">
+                        </div>
+                    </div>
+                    <div class="auto-save-indicator" id="auto-save-indicator">Auto-saved!</div>
+                    <div class="header-buttons">
+                        <button class="reload-btn" id="reload-all" title="Reload Inventory & Configs">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                             </svg>
-                            Upload Loadout
                         </button>
-                    </div>
-
-                    <!-- Category filters -->
-                    <div class="filter-section" style="margin-bottom: 30px;">
-                        <h3>Filter by Category</h3>
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
-                            <button class="tag filter-tag active" data-category="all">All</button>
-                            <button class="tag filter-tag" data-category="stealth">Stealth</button>
-                            <button class="tag filter-tag" data-category="aggressive">Aggressive</button>
-                            <button class="tag filter-tag" data-category="support">Support</button>
-                            <button class="tag filter-tag" data-category="exploration">Exploration</button>
-                            <button class="tag filter-tag" data-category="sniper">Sniper</button>
-                            <button class="tag filter-tag" data-category="close-quarters">Close Quarters</button>
-                        </div>
-                    </div>
-
-                    <!-- Community loadouts grid -->
-                    <div class="community-grid" id="community-loadouts-grid">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            Loading community loadouts...
-                        </div>
+                        <a href="https://github.com/lxjo101" target="_blank" class="github-link" title="Visit GitHub Profile">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Faction Editor View -->
-            <div id="faction-editor-view" class="view-container">
-                <div class="faction-editor">
-                    <h2 style="color: #64ffda; text-align: center; margin-bottom: 30px;">Faction Level Editor</h2>
-                    <p style="text-align: center; color: #a0aec0; margin-bottom: 40px;">
-                        Adjust your reputation levels with each faction. Changes are automatically saved.
-                    </p>
+            <div class="search-container">
+                <input type="text" class="search-input" id="search-items" placeholder="Search items by name or ID...">
+            </div>
 
-                    <div class="faction-grid">
-                        <!-- ICA Faction -->
-                        <div class="faction-card">
-                            <div class="faction-logo">ICA</div>
-                            <h3 class="faction-name">Independent Civilian Administration</h3>
-                            <div class="faction-level-container">
-                                <div class="faction-level-display" id="ica-level-display">Level 0</div>
-                                <input type="range" class="faction-level-slider" id="ica-slider" min="0" max="100" value="0">
-                                <input type="number" class="faction-level-input" id="ica-input" min="0" max="100" value="0">
-                            </div>
-                            <p style="font-size: 0.9em; color: #a0aec0; text-align: center;">
-                                Colonial peacekeepers and civilian administrators
-                            </p>
-                        </div>
-
-                        <!-- Korolev Faction -->
-                        <div class="faction-card">
-                            <div class="faction-logo">KOR</div>
-                            <h3 class="faction-name">Korolev Heavy Industries</h3>
-                            <div class="faction-level-container">
-                                <div class="faction-level-display" id="korolev-level-display">Level 0</div>
-                                <input type="range" class="faction-level-slider" id="korolev-slider" min="0" max="100" value="0">
-                                <input type="number" class="faction-level-input" id="korolev-input" min="0" max="100" value="0">
-                            </div>
-                            <p style="font-size: 0.9em; color: #a0aec0; text-align: center;">
-                                Heavy industry and military equipment specialists
-                            </p>
-                        </div>
-
-                        <!-- Osiris Faction -->
-                        <div class="faction-card">
-                            <div class="faction-logo">OSI</div>
-                            <h3 class="faction-name">Osiris Research</h3>
-                            <div class="faction-level-container">
-                                <div class="faction-level-display" id="osiris-level-display">Level 0</div>
-                                <input type="range" class="faction-level-slider" id="osiris-slider" min="0" max="100" value="0">
-                                <input type="number" class="faction-level-input" id="osiris-input" min="0" max="100" value="0">
-                            </div>
-                            <p style="font-size: 0.9em; color: #a0aec0; text-align: center;">
-                                Advanced technology and research corporation
-                            </p>
-                        </div>
+            <div id="inventory-container">
+                <h3 style="color: #64ffda; margin-bottom: 15px;">Current Inventory (Stash)</h3>
+                <div class="inventory-grid scrollbar-style" id="inventory-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Connecting and loading inventory...
                     </div>
+                </div>
+            </div>
 
-                    <div style="text-align: center; margin-top: 40px;">
-                        <button class="btn btn-success" id="save-factions-btn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
-                            </svg>
-                            Save Faction Levels
-                        </button>
-                    </div>
+            <div id="available-items-container" style="display: none;">
+                <h3 style="color: #64ffda; margin-bottom: 15px; margin-top: 30px;">Available Items</h3>
+                <div class="available-items" id="available-items">
+                    <!-- Available items will be populated here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
-    
-    <!-- Item Detail Modal with Weapon Attachment Editor -->
+    <!-- Modal for item details -->
     <div id="item-detail-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <div id="modal-item-details">
+            <div class="item-detail-modal" id="modal-item-details">
                 <!-- Item details will be populated here -->
-            </div>
-            
-            <!-- Weapon Attachment Editor (shown for weapons only) -->
-            <div id="attachment-editor" class="attachment-editor" style="display: none;">
-                <h3 style="color: #64ffda; margin-bottom: 20px;">Weapon Attachments</h3>
-                
-                <!-- Attachment Presets -->
-                <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
-                    <select id="attachment-preset-select" class="search-input" style="width: 200px; margin-bottom: 0;">
-                        <option value="">Select Preset...</option>
-                        <option value="default">Default Setup</option>
-                        <option value="cqb">Close Quarters</option>
-                        <option value="ranged">Long Range</option>
-                        <option value="stealth">Stealth Setup</option>
-                    </select>
-                    <button class="btn btn-primary" id="load-preset-btn">Load</button>
-                    <button class="btn btn-success" id="save-preset-btn">Save As...</button>
-                </div>
-
-                <!-- Attachment Grid -->
-                <div class="attachment-grid">
-                    <!-- Row 1 -->
-                    <div class="attachment-slot empty" data-attachment-type="optics">
-                        <div class="attachment-slot-label">Optics</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                    <div class="attachment-slot empty" data-attachment-type="magazine">
-                        <div class="attachment-slot-label">Magazine</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                    <div class="attachment-slot empty" data-attachment-type="muzzle" id="muzzle-slot">
-                        <div class="attachment-slot-label">Muzzle</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                    <div class="attachment-slot empty" data-attachment-type="stock">
-                        <div class="attachment-slot-label">Stock</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                    
-                    <!-- Row 2 -->
-                    <div class="attachment-slot empty" data-attachment-type="fore-grip">
-                        <div class="attachment-slot-label">Fore Grip</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                    <div class="attachment-slot empty" data-attachment-type="tactical">
-                        <div class="attachment-slot-label">Tactical</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                    <div class="attachment-slot empty" data-attachment-type="ammo-converter">
-                        <div class="attachment-slot-label">Ammo Converter</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                    <div class="attachment-slot empty" data-attachment-type="rear-grip">
-                        <div class="attachment-slot-label">Rear Grip</div>
-                        <div class="attachment-slot-icon"></div>
-                        <div class="attachment-slot-name">Empty</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Attachment Selection Modal -->
-    <div id="attachment-selection-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="attachment-selection-close">&times;</span>
-            <h2 style="color: #64ffda; margin-bottom: 20px;" id="attachment-selection-title">Select Attachment</h2>
-            
-            <div class="search-container">
-                <input type="text" class="search-input" id="search-attachments" placeholder="Search attachments...">
-            </div>
-            
-            <div class="community-grid" id="attachment-selection-grid">
-                <!-- Available attachments will be populated here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Community Upload Modal -->
-    <div id="community-upload-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="community-upload-close">&times;</span>
-            <h2 style="color: #64ffda; margin-bottom: 20px;" id="upload-modal-title">Upload to Community</h2>
-            
-            <form class="auth-form" id="community-upload-form">
-                <div class="form-group">
-                    <label for="upload-title">Title *</label>
-                    <input type="text" id="upload-title" required maxlength="100" placeholder="Enter a descriptive title...">
-                </div>
-                
-                <div class="form-group">
-                    <label for="upload-description">Description</label>
-                    <textarea id="upload-description" rows="4" maxlength="500" placeholder="Describe your build, strategy, or setup..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>Tags</label>
-                    <div class="tag-input-container" id="tag-input-container">
-                        <input type="text" id="tag-input" placeholder="Add tags..." style="border: none; background: none; outline: none; flex: 1; color: #e0e0e0;">
-                    </div>
-                    <div class="tag-suggestions" id="tag-suggestions" style="display: none; position: relative; margin-top: 5px;">
-                        <!-- Tag suggestions will appear here -->
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="upload-category">Category</label>
-                    <select id="upload-category">
-                        <option value="pvp-loadout">PvP Loadout</option>
-                        <option value="pve-setup">PvE Setup</option>
-                        <option value="beginner-friendly">Beginner Friendly</option>
-                        <option value="resource-rich">Resource Rich</option>
-                        <option value="weapon-focus">Weapon Focus</option>
-                        <option value="endgame">Endgame</option>
-                        <option value="stealth">Stealth</option>
-                        <option value="aggressive">Aggressive</option>
-                        <option value="support">Support</option>
-                        <option value="exploration">Exploration</option>
-                    </select>
-                </div>
-                
-                <div style="display: flex; gap: 15px; margin-top: 30px;">
-                    <button type="button" class="btn btn-danger" id="cancel-upload-btn" style="flex: 1;">Cancel</button>
-                    <button type="submit" class="btn btn-success" id="submit-upload-btn" style="flex: 1;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z"/>
-                        </svg>
-                        Upload
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Authentication Modal -->
-    <div id="auth-modal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <span class="close" id="auth-close">&times;</span>
-            <h2 style="color: #64ffda; text-align: center; margin-bottom: 30px;">Community Authentication</h2>
-            
-            <div id="auth-method-selection">
-                <p style="text-align: center; margin-bottom: 30px; color: #a0aec0;">
-                    Choose your preferred authentication method to access community features.
-                </p>
-                
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <button class="btn btn-github" id="github-auth-btn" style="justify-content: center;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                        </svg>
-                        Continue with GitHub
-                    </button>
-                    
-                    <div style="text-align: center; margin: 20px 0; color: #4a5568;">
-                        <span>or</span>
-                    </div>
-                    
-                    <button class="btn btn-primary" id="simple-auth-btn" style="justify-content: center;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
-                        </svg>
-                        Simple Username Login
-                    </button>
-                </div>
-            </div>
-
-            <!-- Simple Auth Form -->
-            <div id="simple-auth-form" style="display: none;">
-                <form class="auth-form">
-                    <div class="form-group">
-                        <label for="username-input">Username</label>
-                        <input type="text" id="username-input" required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_-]+" placeholder="Enter your username...">
-                        <small style="color: #a0aec0; font-size: 0.8em;">
-                            3-20 characters, letters, numbers, underscore, and dash only
-                        </small>
-                    </div>
-                    
-                    <div style="display: flex; gap: 15px; margin-top: 30px;">
-                        <button type="button" class="btn btn-danger" id="back-to-auth-methods" style="flex: 1;">Back</button>
-                        <button type="submit" class="btn btn-success" style="flex: 1;">Login</button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
@@ -434,10 +1151,10 @@
         <div class="modal-content" style="max-width: 400px;">
             <span class="close" id="confirm-close">&times;</span>
             <div style="text-align: center;">
-                <h2 style="color: #ff6b6b; margin-bottom: 20px;">Confirm Action</h2>
+                <h2 style="color: #ff6b6b; margin-bottom: 20px;">Confirm Deletion</h2>
                 <p id="confirm-message" style="margin-bottom: 30px; color: #e0e0e0;"></p>
                 <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="btn btn-danger" id="confirm-yes">Confirm</button>
+                    <button class="btn btn-danger" id="confirm-yes">Yes, Delete</button>
                     <button class="btn btn-primary" id="confirm-no">Cancel</button>
                 </div>
             </div>
@@ -446,12 +1163,1230 @@
 
     <div class="status-bar">
         <div class="status-text" id="status-text">Auto-connecting to database...</div>
+        <div class="status-center">
+            <span style="color: rgba(160, 174, 192, 0.6); font-size: 0.8em;">made by lxjo</span>
+        </div>
         <div class="connection-status">
             <div class="status-indicator" id="connection-indicator"></div>
             <span id="connection-text">Connecting...</span>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        class CycleRebornEditor {
+            constructor() {
+                this.inventory = [];
+                this.availableItems = [];
+                this.itemConfigs = {};
+                this.selectedCategory = 'all';
+                this.isConnected = false;
+                this.currentFilter = '';
+                this.apiBaseUrl = '/api';
+                this.autoSaveTimeout = null;
+                this.imageCache = new Map(); // Cache for loaded images
+                this.imageErrors = new Set(); // Track failed image loads
+                
+                // Remote asset URLs for lxjo101/TheCycleRebornSaveEditor-Assets
+                this.remoteAssetBase = 'https://raw.githubusercontent.com/lxjo101/TheCycleRebornSaveEditor-Assets/main';                // Alternative CDN: 'https://cdn.jsdelivr.net/gh/lxjo101/TheCycleRebornSaveEditor-Assets@main'
+
+                this.remoteConfigUrl = `${this.remoteAssetBase}/itemConfigs.json`;
+                this.remoteItemsUrl = `${this.remoteAssetBase}/itemIds.json`;
+                this.remoteIconsUrl = `${this.remoteAssetBase}/icons/`;
+
+                this.init();
+                this.bindEvents();
+                this.userStats = { totalUsers: 0, activeUsers: 0 };
+                this.statsUpdateInterval = null;
+            }
+
+            async init() {
+                this.updateStatus('Auto-connecting to database...');
+                await this.loadItemConfigs();
+                await this.loadAvailableItems();
+                
+                // Initialize window controls if in Electron
+                this.initializeWindowControls();
+                
+                // Initialize update checker if in Electron
+                if (window.electronAPI) {
+                    this.initializeUpdateChecker();
+                }
+                
+                // Auto-connect and load
+                this.autoConnectAndLoad();
+            }
+
+            initializeWindowControls() {
+                if (window.electronAPI && window.electronAPI.windowMinimize) {
+                    // We're in Electron, add window controls
+                    const controlsContainer = document.getElementById('title-bar-controls');
+                    controlsContainer.innerHTML = `
+                        <button class="title-bar-button minimize" id="minimize-btn" title="Minimize">
+                            <svg viewBox="0 0 12 12" fill="currentColor">
+                                <rect width="10" height="1" x="1" y="6"/>
+                            </svg>
+                        </button>
+                        <button class="title-bar-button maximize" id="maximize-btn" title="Maximize">
+                            <svg viewBox="0 0 12 12" fill="currentColor">
+                                <rect width="9" height="9" x="1.5" y="1.5" fill="none" stroke="currentColor" stroke-width="1"/>
+                            </svg>
+                        </button>
+                        <button class="title-bar-button close" id="close-btn" title="Close">
+                            <svg viewBox="0 0 12 12" fill="currentColor">
+                                <path d="M6.279 5.5L11 1l.5.5L6.779 6l4.72 4.5-.5.5L6.28 6.5 1.5 11l-.5-.5L5.721 6 1 1.5l.5-.5L6.279 5.5z"/>
+                            </svg>
+                        </button>
+                    `;
+
+                    // Add event listeners
+                    document.getElementById('minimize-btn').addEventListener('click', () => {
+                        window.electronAPI.windowMinimize();
+                    });
+
+                    document.getElementById('maximize-btn').addEventListener('click', async () => {
+                        await window.electronAPI.windowMaximize();
+                        this.updateMaximizeButton();
+                    });
+
+                    document.getElementById('close-btn').addEventListener('click', () => {
+                        window.electronAPI.windowClose();
+                    });
+
+                    // Update maximize button icon based on window state
+                    this.updateMaximizeButton();
+                } else {
+                    // We're in web browser, hide the title bar or show a web version
+                    const titleBar = document.querySelector('.custom-title-bar');
+                    titleBar.style.display = 'none';
+                    
+                    // Adjust container padding
+                    const container = document.querySelector('.container');
+                    container.style.paddingTop = '0';
+                    
+                    // Adjust sidebar
+                    const sidebar = document.querySelector('.sidebar');
+                    sidebar.style.top = '0';
+                    sidebar.style.height = '100vh';
+                }
+            }
+
+            async initializeUpdateChecker() {
+                try {
+                    // Show the update section if in Electron
+                    const updateSection = document.getElementById('update-section');
+                    if (updateSection) {
+                        updateSection.style.display = 'block';
+                    }
+
+                    const updateBtn = document.getElementById('check-updates-btn');
+                    if (updateBtn) {
+                        updateBtn.addEventListener('click', () => this.checkForUpdates());
+                    }
+
+                    // Display current version
+                    if (window.electronAPI.getCurrentVersion) {
+                        const version = await window.electronAPI.getCurrentVersion();
+                        this.displayVersion(version);
+                    }
+
+                    // Listen for update events
+                    if (window.electronAPI.onUpdateAvailable) {
+                        window.electronAPI.onUpdateAvailable((data) => {
+                            this.showUpdateAvailable(data);
+                        });
+                    }
+
+                    if (window.electronAPI.onUpdateError) {
+                        window.electronAPI.onUpdateError((error) => {
+                            console.error('Update error:', error);
+                            this.updateStatus(`Update error: ${error.message || error}`);
+                        });
+                    }
+
+                    console.log('✅ Auto-updater initialized');
+                } catch (error) {
+                    console.log('Update checker not available:', error);
+                }
+            }
+
+            async checkForUpdates() {
+                const updateBtn = document.getElementById('check-updates-btn');
+                const originalHTML = updateBtn.innerHTML;
+                
+                try {
+                    // Show loading state
+                    updateBtn.innerHTML = `
+                        <div class="spinner" style="width: 16px; height: 16px; margin-right: 5px;"></div>
+                        Checking...
+                    `;
+                    updateBtn.disabled = true;
+
+                    if (window.electronAPI && window.electronAPI.checkForUpdates) {
+                        const result = await window.electronAPI.checkForUpdates();
+                        
+                        if (result.success) {
+                            this.updateStatus('Update check completed');
+                        } else {
+                            this.updateStatus(`Update check failed: ${result.message}`);
+                        }
+                    } else {
+                        this.updateStatus('Update checker not available');
+                    }
+                } catch (error) {
+                    console.error('Error checking for updates:', error);
+                    this.updateStatus('Error checking for updates');
+                } finally {
+                    // Restore button state
+                    updateBtn.innerHTML = originalHTML;
+                    updateBtn.disabled = false;
+                }
+            }
+
+            displayVersion(version) {
+                // Create version display element
+                const existingVersion = document.querySelector('.version-info');
+                if (existingVersion) {
+                    existingVersion.remove();
+                }
+
+                const versionDiv = document.createElement('div');
+                versionDiv.className = 'version-info';
+                versionDiv.textContent = `v${version}`;
+                document.body.appendChild(versionDiv);
+            }
+
+            showUpdateAvailable(data) {
+                // Add update indicator to the version info
+                const versionInfo = document.querySelector('.version-info');
+                if (versionInfo && !versionInfo.querySelector('.update-available-indicator')) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'update-available-indicator';
+                    indicator.textContent = 'Update Available!';
+                    indicator.style.cursor = 'pointer';
+                    indicator.addEventListener('click', () => this.checkForUpdates());
+                    versionInfo.appendChild(indicator);
+                }
+
+                // Show update notification
+                this.showUpdateNotification(data);
+            }
+
+            showUpdateNotification(data) {
+                // Remove any existing notifications
+                const existingNotification = document.querySelector('.update-notification');
+                if (existingNotification) {
+                    existingNotification.remove();
+                }
+
+                const notification = document.createElement('div');
+                notification.className = 'update-notification';
+                notification.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; padding: 15px; border-radius: 8px; margin: 10px; 
+                                max-width: 300px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                        <h4 style="margin: 0 0 10px 0;">🎉 Update Available!</h4>
+                        <p style="margin: 0 0 10px 0; font-size: 14px;">Version ${data.version || 'latest'} is now available.</p>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                    style="flex: 1; padding: 8px; border: none; border-radius: 4px; 
+                                           background: rgba(255,255,255,0.2); color: white; cursor: pointer;">
+                                Later
+                            </button>
+                            <button onclick="editor.checkForUpdates(); this.parentElement.parentElement.parentElement.remove();" 
+                                    style="flex: 1; padding: 8px; border: none; border-radius: 4px; 
+                                           background: rgba(255,255,255,0.9); color: #333; cursor: pointer; font-weight: bold;">
+                                Update Now
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto-remove after 10 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 10000);
+            }
+            
+            async updateMaximizeButton() {
+                if (window.electronAPI && window.electronAPI.windowIsMaximized) {
+                    const isMaximized = await window.electronAPI.windowIsMaximized();
+                    const maximizeBtn = document.getElementById('maximize-btn');
+                    
+                    if (isMaximized) {
+                        maximizeBtn.innerHTML = `
+                            <svg viewBox="0 0 12 12" fill="currentColor">
+                                <rect width="7" height="7" x="1.5" y="3.5" fill="none" stroke="currentColor" stroke-width="1"/>
+                                <rect width="7" height="7" x="3.5" y="1.5" fill="none" stroke="currentColor" stroke-width="1"/>
+                            </svg>
+                        `;
+                        maximizeBtn.title = 'Restore';
+                    } else {
+                        maximizeBtn.innerHTML = `
+                            <svg viewBox="0 0 12 12" fill="currentColor">
+                                <rect width="9" height="9" x="1.5" y="1.5" fill="none" stroke="currentColor" stroke-width="1"/>
+                            </svg>
+                        `;
+                        maximizeBtn.title = 'Maximize';
+                    }
+                }
+            }
+
+            async testStats() {
+                console.log('Testing stats manually...');
+                await this.pingUserStats();
+            }
+
+            async loadItemConfigs() {
+                try {
+                    console.log(`Loading item configs from: ${this.remoteConfigUrl}`);
+                    const response = await fetch(this.remoteConfigUrl);
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.itemConfigs = data.itemConfigs || {};
+                        this.rarityColors = data.rarityColors || {};
+                        console.log(`✅ Loaded ${Object.keys(this.itemConfigs).length} item configurations from remote`);
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    console.error('Error loading remote item configs:', error);
+                    this.createFallbackConfigs();
+                }
+            }
+
+            async autoConnectAndLoad() {
+                try {
+                    await this.connectToDatabase();
+                    await this.loadInventory();
+
+                    // Start stats tracking AFTER database connection
+                    this.startStatsUpdates();
+
+                } catch (error) {
+                    console.error('Auto-connect failed:', error);
+                    this.updateStatus('Auto-connect failed - check connection');
+                }
+            }
+
+            bindEvents() {
+                // Window controls are now handled in initializeWindowControls()
+                
+                // Category filters
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.selectedCategory = e.target.dataset.category;
+                        this.renderInventory();
+                        this.filterAvailableItems();
+                    });
+                });
+            
+                // Action buttons
+                document.getElementById('add-item-btn').addEventListener('click', () => this.toggleAvailableItems());
+                document.getElementById('clear-inventory').addEventListener('click', () => this.clearInventory());
+                document.getElementById('backup-save').addEventListener('click', () => this.exportBackup());
+                document.getElementById('restore-save').addEventListener('click', () => this.importBackup());
+            
+                // Search
+                document.getElementById('search-items').addEventListener('input', (e) => {
+                    this.currentFilter = e.target.value.toLowerCase();
+                    this.renderInventory();
+                    this.filterAvailableItems();
+                });
+            
+                // Modal
+                document.querySelector('.close').addEventListener('click', () => this.closeModal());
+
+                window.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('modal')) {
+                        this.closeModal();
+                    }
+                });
+
+                document.getElementById('reload-all').addEventListener('click', () => this.reloadAll());
+            
+                // Currency input listeners
+                ['aurum-value', 'kmarks-value', 'insurance-value'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.addEventListener('change', () => {
+                            this.saveBalance();
+                        });
+                    }
+                });
+
+                // Game launcher events
+                document.getElementById('launch-game-btn').addEventListener('click', () => this.launchGame());
+                document.getElementById('configure-game-btn').addEventListener('click', () => this.configureGamePaths());
+            
+                // Check if game is configured on startup
+                this.checkGameConfiguration();
+            }
+                    
+                    
+            async checkGameConfiguration() {
+                if (window.electronAPI && window.electronAPI.checkGameConfigured) {
+                    try {
+                        const isConfigured = await window.electronAPI.checkGameConfigured();
+                        const configureBtn = document.getElementById('configure-game-btn');
+
+                        if (!isConfigured && configureBtn) {
+                            configureBtn.style.display = 'block';
+                        }
+                    } catch (error) {
+                        console.log('Could not check game configuration:', error);
+                    }
+                }
+            }
+
+            async launchGame() {
+                if (!window.electronAPI || !window.electronAPI.launchGame) {
+                    this.updateStatus('Game launcher not available in web version');
+                    return;
+                }
+            
+                const launchBtn = document.getElementById('launch-game-btn');
+                const launchText = document.getElementById('launch-game-text');
+
+                launchText.textContent = 'Launching...';
+                launchBtn.disabled = true;
+            
+                try {
+                    const result = await window.electronAPI.launchGame();
+
+                    if (result.success) {
+                        this.updateStatus(result.message);
+                        launchText.textContent = 'Game Started!';
+                        setTimeout(() => {
+                            launchText.textContent = 'Launch Game';
+                        }, 3000);
+                    } else {
+                        this.updateStatus(result.message);
+                        launchText.textContent = 'Launch Failed';
+                        setTimeout(() => {
+                            launchText.textContent = 'Launch Game';
+                        }, 3000);
+                    }
+                } catch (error) {
+                    console.error('Error launching game:', error);
+                    this.updateStatus('Failed to launch game');
+                    launchText.textContent = 'Launch Game';
+                }
+            
+                launchBtn.disabled = false;
+            }
+
+            async configureGamePaths() {
+                if (!window.electronAPI || !window.electronAPI.configureGamePaths) {
+                    this.updateStatus('Game configuration not available in web version');
+                    return;
+                }
+            
+                this.updateStatus('Configuring game paths...');
+
+                try {
+                    const success = await window.electronAPI.configureGamePaths();
+
+                    if (success) {
+                        this.updateStatus('Game paths configured successfully');
+                        document.getElementById('configure-game-btn').style.display = 'none';
+                    } else {
+                        this.updateStatus('Game path configuration cancelled');
+                    }
+                } catch (error) {
+                    console.error('Error configuring game paths:', error);
+                    this.updateStatus('Failed to configure game paths');
+                }
+            }
+
+            async connectToDatabase() {
+                this.updateStatus('Connecting to MongoDB...');
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/connect`, {
+                        method: 'POST'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        this.isConnected = true;
+                        this.updateConnectionStatus(true);
+                        this.updateStatus('Connected successfully');
+                        console.log('Connection details:', data);
+                    } else {
+                        throw new Error(data.message || 'Failed to connect to database');
+                    }
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    this.updateStatus(`Connection failed: ${error.message}`);
+                    this.updateConnectionStatus(false);
+                    throw error;
+                }
+            }
+
+            async loadAvailableItems() {
+                try {
+                    console.log(`Loading available items from: ${this.remoteItemsUrl}`);
+                    const response = await fetch(this.remoteItemsUrl);
+                    if (response.ok) {
+                        this.availableItems = await response.json();
+                        this.updateStatus('Item database loaded from remote');
+                        console.log(`✅ Loaded ${this.availableItems.length} available items from remote`);
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                } catch (error) {
+                    console.error('Error loading remote available items:', error);
+                    this.updateStatus('Warning: Could not load itemIds.json - using fallback data');
+                    this.createFallbackItems();
+                }
+            }
+
+            createFallbackItems() {
+                this.availableItems = [
+                    { baseItemId: "Consumable_Health_01" },
+                    { baseItemId: "Shield_01" },
+                    { baseItemId: "WP_E_AR_Energy_01" }
+                ];
+            }
+
+            async loadInventory() {
+                this.updateStatus('Loading inventory...');
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/inventory`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        if (Array.isArray(data)) {
+                            this.inventory = this.splitStacks(data);
+                        } else if (data && Array.isArray(data.inventory)) {
+                            this.inventory = this.splitStacks(data.inventory);
+                        } else {
+                            console.warn('Unexpected response format:', data);
+                            this.inventory = [];
+                        }
+                        
+                        this.renderInventory();
+                        this.updateStatus(`Inventory loaded - ${this.inventory.length} items found`);
+                        console.log('Loaded inventory:', this.inventory);
+
+                        this.loadBalance().catch(err => console.warn('Balance loading failed:', err));
+
+                    } else {
+                        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                        throw new Error(errorData.message || 'Failed to load inventory');
+                    }
+                } catch (error) {
+                    console.error('Load inventory error:', error);
+                    this.updateStatus(`Load failed: ${error.message}`);
+                    this.generateEmptyInventory();
+                }
+            }
+            
+            async saveInventory() {
+                if (!this.isConnected) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/inventory`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.inventory)
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        this.showAutoSaveIndicator();
+                        console.log('Auto-saved inventory');
+                    } else {
+                        console.error('Save failed:', data.message);
+                    }
+                } catch (error) {
+                    console.error('Save inventory error:', error);
+                }
+            }
+
+            // Add this function after the loadInventory() function:
+            async loadBalance() {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/balance`);
+                    if (response.ok) {
+                        const balance = await response.json();
+                        const aurumInput = document.getElementById('aurum-value');
+                        const kmarksInput = document.getElementById('kmarks-value');
+                        const insuranceInput = document.getElementById('insurance-value');
+
+                        if (aurumInput) aurumInput.value = balance.AU || 0;
+                        if (kmarksInput) kmarksInput.value = balance.SC || 0;
+                        if (insuranceInput) insuranceInput.value = balance.IN || 0;
+                    }
+                } catch (error) {
+                    console.error('Error loading balance:', error);
+                }
+            }
+
+            // Add this function after loadBalance():
+            async saveBalance() {
+                try {
+                    const balance = {
+                        AU: parseInt(document.getElementById('aurum-value').value) || 0,
+                        SC: parseInt(document.getElementById('kmarks-value').value) || 0,
+                        IN: parseInt(document.getElementById('insurance-value').value) || 0
+                    };
+
+                    const response = await fetch(`${this.apiBaseUrl}/balance`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(balance)
+                    });
+
+                    if (response.ok) {
+                        console.log('Balance saved successfully');
+                    }
+                } catch (error) {
+                    console.error('Error saving balance:', error);
+                }
+            }
+            
+            async reloadAll() {
+                this.updateStatus('Reloading all data...');
+                try {
+                    await this.loadItemConfigs();
+                    await this.loadAvailableItems();
+                    await this.loadInventory();
+                    this.filterAvailableItems();
+                    this.renderInventory();
+                    this.updateStatus('All data reloaded successfully');
+                } catch (error) {
+                    console.error('Error reloading data:', error);
+                    this.updateStatus('Failed to reload data');
+                }
+            }
+
+            autoSave() {
+                if (this.autoSaveTimeout) {
+                    clearTimeout(this.autoSaveTimeout);
+                }
+                
+                this.autoSaveTimeout = setTimeout(() => {
+                    this.saveInventory();
+                }, 1000);
+            }
+
+            showAutoSaveIndicator() {
+                const indicator = document.getElementById('auto-save-indicator');
+                indicator.classList.add('show');
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 2000);
+            }
+
+            generateEmptyInventory() {
+                this.inventory = [];
+                this.renderInventory();
+            }
+
+            renderInventory() {
+                const grid = document.getElementById('inventory-grid');
+                grid.innerHTML = '';
+
+                if (!Array.isArray(this.inventory)) {
+                    console.warn('Inventory is not an array:', this.inventory);
+                    this.inventory = [];
+                }
+
+                let filteredInventory = this.inventory.filter(item => {
+                    if (!item || !item.baseItemId) return false;
+                    
+                    const config = this.getItemConfig(item.baseItemId);
+                    const matchesCategory = this.selectedCategory === 'all' || config.category === this.selectedCategory;
+                    const matchesSearch = !this.currentFilter || 
+                        item.baseItemId.toLowerCase().includes(this.currentFilter) ||
+                        config.displayName.toLowerCase().includes(this.currentFilter);
+                    return matchesCategory && matchesSearch;
+                });
+
+                filteredInventory.forEach((item, index) => {
+                    const slot = document.createElement('div');
+                    slot.className = 'item-slot';
+                    
+                    const config = this.getItemConfig(item.baseItemId);
+                    const iconPath = this.getItemIcon(item.baseItemId);
+                    
+                    slot.innerHTML = `
+                        <div class="item-image rarity-${config.rarity}" style="background-image: url('${iconPath}')"></div>
+                        <div class="item-name">${config.displayName}</div>
+                        <div class="item-amount">${item.amount || 1}</div>
+                    `;
+                    
+                    // Handle image loading errors
+                    const itemImage = slot.querySelector('.item-image');
+                    this.handleImageLoad(itemImage, iconPath, item.baseItemId);
+                    
+                    slot.addEventListener('click', () => this.showItemDetail(item, this.inventory.indexOf(item)));
+                    grid.appendChild(slot);
+                });
+            }
+
+            toggleAvailableItems() {
+                const container = document.getElementById('available-items-container');
+                const mainContent = document.getElementById('main-content');
+                const isVisible = container.style.display !== 'none';
+                
+                container.style.display = isVisible ? 'none' : 'block';
+                
+                if (!isVisible) {
+                    this.filterAvailableItems();
+                    mainContent.classList.add('hide-scrollbar');
+                } else {
+                    mainContent.classList.remove('hide-scrollbar');
+                }
+            }
+
+            filterAvailableItems() {
+                const container = document.getElementById('available-items');
+                container.innerHTML = '';
+                        
+                // First, deduplicate items by baseItemId
+                const uniqueItems = [];
+                const seenIds = new Set();
+                        
+                this.availableItems.forEach(item => {
+                    if (!seenIds.has(item.baseItemId) && this.itemConfigs[item.baseItemId]) {
+                        uniqueItems.push(item);
+                        seenIds.add(item.baseItemId);
+                    }
+                });
+            
+                let filteredItems = uniqueItems.filter(item => {
+                    const config = this.getItemConfig(item.baseItemId);
+                    const matchesCategory = this.selectedCategory === 'all' || config.category === this.selectedCategory;
+                    const matchesSearch = !this.currentFilter || 
+                        config.displayName.toLowerCase().includes(this.currentFilter) ||
+                        item.baseItemId.toLowerCase().includes(this.currentFilter);
+                    return matchesCategory && matchesSearch;
+                });
+                filteredItems.forEach(item => {
+                    const config = this.getItemConfig(item.baseItemId);
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'available-item';
+                    
+                    const iconPath = this.getItemIcon(item.baseItemId);
+                    
+                    itemDiv.innerHTML = `
+                        <div class="available-item-icon rarity-${config.rarity}" style="background-image: url('${iconPath}')"></div>
+                        <div class="available-item-info">
+                            <h4 class="rarity-${config.rarity}">${config.displayName}</h4>
+                            <p style="color: ${this.rarityColors[config.rarity] || '#64ffda'}; font-size: 0.7em; text-transform: uppercase; margin-top: 3px;">${config.rarity}</p>
+                        </div>
+                        <div class="available-item-controls">
+                            <input type="number" class="quantity-input" value="1" min="1" max="999">
+                            <button class="btn btn-primary">Add</button>
+                        </div>
+                    `;
+                    
+                    // Handle image loading errors
+                    const itemIcon = itemDiv.querySelector('.available-item-icon');
+                    this.handleImageLoad(itemIcon, iconPath, item.baseItemId);
+                    
+                    const addButton = itemDiv.querySelector('.btn');
+                    const quantityInput = itemDiv.querySelector('.quantity-input');
+                    
+                    addButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const quantity = parseInt(quantityInput.value) || 1;
+                        this.addItemToInventory(item.baseItemId, quantity);
+                    });
+                    
+                    container.appendChild(itemDiv);
+                });
+            }
+
+            handleImageLoad(element, imagePath, itemId) {
+                if (this.imageErrors.has(imagePath)) {
+                    // Already know this image failed, mark as error immediately
+                    element.classList.add('error');
+                    element.style.backgroundImage = 'none';
+                    return;
+                }
+
+                if (this.imageCache.has(imagePath)) {
+                    // Image is cached and working
+                    return;
+                }
+
+                // Create a test image to check if it loads
+                const testImg = new Image();
+                testImg.onload = () => {
+                    this.imageCache.set(imagePath, true);
+                    // Image loaded successfully, no action needed
+                };
+                
+                testImg.onerror = () => {
+                    this.imageErrors.add(imagePath);
+                    element.classList.add('error');
+                    element.style.backgroundImage = 'none';
+                    console.warn(`Failed to load image: ${imagePath} for item: ${itemId}`);
+                };
+                
+                testImg.src = imagePath;
+            }
+
+            addItemToInventory(baseItemId, quantity) {
+                const amount = parseInt(quantity) || 1;
+                const config = this.getItemConfig(baseItemId);
+                const maxStack = config.maxStackSize || 50;
+
+                // Try to add to existing stacks first
+                let remainingAmount = amount;
+
+                // Find existing stacks that aren't full
+                const existingStacks = this.inventory.filter(item => 
+                    item.baseItemId === baseItemId && item.amount < maxStack
+                );
+
+                for (const existingItem of existingStacks) {
+                    if (remainingAmount <= 0) break;
+
+                    const canAdd = maxStack - existingItem.amount;
+                    const toAdd = Math.min(remainingAmount, canAdd);
+                    existingItem.amount += toAdd;
+                    remainingAmount -= toAdd;
+                }
+
+                // Create new stacks for remaining amount
+                while (remainingAmount > 0) {
+                    const stackAmount = Math.min(remainingAmount, maxStack);
+                    this.inventory.push({
+                        itemId: this.generateUUID(),
+                        baseItemId: baseItemId,
+                        primaryVanityId: 0,
+                        secondaryVanityId: 0,
+                        amount: stackAmount,
+                        durability: config.maxDurability,
+                        modData: { m: [] },
+                        rolledPerks: [],
+                        insurance: "",
+                        insuranceOwnerPlayfabId: "",
+                        insuredAttachmentId: "",
+                        origin: { t: "", p: "", g: "" }
+                    });
+                    remainingAmount -= stackAmount;
+                }
+            
+                this.renderInventory();
+                this.autoSave();
+                this.updateStatus(`Added ${amount}x ${config.displayName} to inventory`);
+            }
+
+            showItemDetail(item, index) {
+                const modal = document.getElementById('item-detail-modal');
+                const detailsDiv = document.getElementById('modal-item-details');
+                
+                const config = this.getItemConfig(item.baseItemId);
+                const iconPath = this.getItemIcon(item.baseItemId);
+                const showDurability = config.maxDurability > 0 && config.category !== 'weapons';
+                
+                let durabilitySlider = '';
+                if (showDurability) {
+                    const currentDurability = item.durability === -1 ? config.maxDurability : item.durability;
+                    durabilitySlider = `
+                        <div class="durability-slider-container">
+                            <label for="durability-slider">Durability: <span class="durability-value">${currentDurability}</span>/${config.maxDurability}</label>
+                            <input type="range" id="durability-slider" class="durability-slider" 
+                                   min="1" max="${config.maxDurability}" value="${currentDurability}"
+                                   oninput="editor.updateDurabilityDisplay(this.value, ${config.maxDurability})">
+                        </div>
+                    `;
+                }
+                
+                detailsDiv.innerHTML = `
+                    <div class="item-detail-icon rarity-${config.rarity}" style="background-image: url('${iconPath}')"></div>
+                    <h2 style="color: ${this.rarityColors[config.rarity] || '#64ffda'}; margin-bottom: 20px;">${config.displayName}</h2>
+                    <p><strong>Base Item ID:</strong> ${item.baseItemId}</p>
+                    <p><strong>Rarity:</strong> <span style="color: ${this.rarityColors[config.rarity] || '#64ffda'}">${config.rarity.charAt(0).toUpperCase() + config.rarity.slice(1)}</span></p>
+                    <p><strong>Current Amount:</strong> ${item.amount || 1}</p>
+                    ${showDurability ? `<p><strong>Durability:</strong> ${item.durability === -1 ? 'Full' : item.durability}</p>` : ''}
+                    <div style="margin-top: 20px;">
+                        <label for="edit-quantity">Edit Quantity:</label>
+                        <input type="number" id="edit-quantity" class="quantity-input" value="${item.amount || 1}" min="0" max="999" style="margin: 0 10px;">
+                        <button class="btn btn-success" onclick="editor.updateItemQuantity(${index}, document.getElementById('edit-quantity').value)">Update</button>
+                        <button class="btn btn-danger" onclick="editor.removeItem(${index})" style="margin-left: 10px;">Remove</button>
+                    </div>
+                    ${durabilitySlider}
+                `;
+                
+                // Handle image loading for the modal icon
+                const detailIcon = detailsDiv.querySelector('.item-detail-icon');
+                this.handleImageLoad(detailIcon, iconPath, item.baseItemId);
+                
+                modal.style.display = 'block';
+                this.currentEditingItemIndex = index;
+            }
+
+            updateDurabilityDisplay(value, max) {
+                const display = document.querySelector('.durability-value');
+                if (display) {
+                    display.textContent = value;
+                }
+                
+                if (this.currentEditingItemIndex !== undefined && this.inventory[this.currentEditingItemIndex]) {
+                    this.inventory[this.currentEditingItemIndex].durability = parseInt(value);
+                    this.autoSave();
+                }
+            }
+
+            updateItemQuantity(index, newQuantity) {
+                const quantity = parseInt(newQuantity);
+                if (quantity <= 0) {
+                    this.removeItem(index);
+                } else {
+                    if (this.inventory[index]) {
+                        this.inventory[index].amount = quantity;
+                        this.renderInventory();
+                        this.closeModal();
+                        this.autoSave();
+                        this.updateStatus(`Updated item quantity to ${quantity}`);
+                    }
+                }
+            }
+
+            removeItem(index) {
+                if (this.inventory[index]) {
+                    const item = this.inventory[index];
+                    const config = this.getItemConfig(item.baseItemId);
+                    const message = `Remove ${item.amount || 1}x ${config.displayName} from inventory?`;
+
+                    this.showConfirmModal(message, () => {
+                        this.inventory.splice(index, 1);
+                        this.renderInventory();
+                        this.closeModal();
+                        this.autoSave();
+                        this.updateStatus(`Removed ${config.displayName} from inventory`);
+                    });
+                }
+            }
+
+            clearInventory() {
+                this.showConfirmModal('Are you sure you want to clear the entire inventory?', () => {
+                    this.inventory = [];
+                    this.renderInventory();
+                    this.autoSave();
+                    this.updateStatus('Inventory cleared');
+                });
+            }
+
+            exportBackup() {
+                const backup = {
+                    timestamp: new Date().toISOString(),
+                    inventory: this.inventory
+                };
+                
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `cycle_reborn_backup_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.updateStatus('Backup exported successfully');
+            }
+
+            importBackup() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const backup = JSON.parse(e.target.result);
+                                if (backup.inventory && Array.isArray(backup.inventory)) {
+                                    this.inventory = backup.inventory;
+                                    this.renderInventory();
+                                    this.autoSave();
+                                    this.updateStatus('Backup imported successfully');
+                                } else {
+                                    throw new Error('Invalid backup format');
+                                }
+                            } catch (error) {
+                                this.updateStatus('Error: Invalid backup file format');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                input.click();
+            }
+
+            showConfirmModal(message, onConfirm) {
+                const modal = document.getElementById('confirm-modal');
+                const messageEl = document.getElementById('confirm-message');
+                const yesBtn = document.getElementById('confirm-yes');
+                const noBtn = document.getElementById('confirm-no');
+                const closeBtn = document.getElementById('confirm-close');
+
+                messageEl.textContent = message;
+                modal.style.display = 'block';
+
+                // Remove old event listeners
+                const newYesBtn = yesBtn.cloneNode(true);
+                const newNoBtn = noBtn.cloneNode(true);
+                const newCloseBtn = closeBtn.cloneNode(true);
+
+                yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+                noBtn.parentNode.replaceChild(newNoBtn, noBtn);
+                closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+                // Add new event listeners
+                newYesBtn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                    onConfirm();
+                });
+
+                newNoBtn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+
+                newCloseBtn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+            }
+
+            closeModal() {
+                document.getElementById('item-detail-modal').style.display = 'none';
+                this.currentEditingItemIndex = undefined;
+            }
+
+            getItemConfig(baseItemId) {
+                if (this.itemConfigs[baseItemId]) {
+                    return this.itemConfigs[baseItemId];
+                }
+
+                // Fallback config
+                return {
+                    displayName: this.cleanDisplayName(baseItemId),
+                    category: this.guessCategory(baseItemId),
+                    rarity: 'common',
+                    maxDurability: this.guessMaxDurability(baseItemId),
+                    maxStackSize: this.guessMaxStackSize(baseItemId),
+                    icon: this.getDefaultIcon(baseItemId)
+                };
+            }
+
+            guessCategory(baseItemId) {
+                const id = baseItemId.toLowerCase();
+                if (id.includes('wp_')) return 'weapons';
+                if (id.includes('consumable')) return 'consumables';
+                if (id.includes('shield') || id.includes('helmet') || id.includes('bag') || id.includes('vest')) return 'armor';
+                if (id.includes('light') || id.includes('medium') || id.includes('heavy') || id.includes('shotgun') || id.includes('special')) return 'ammo';
+                if (id.includes('tool') || id.includes('scanner')) return 'tools';
+                if (id.includes('mod_')) return 'attachments';
+                return 'materials';
+            }
+
+            guessMaxDurability(baseItemId) {
+                const id = baseItemId.toLowerCase();
+                if (id.includes('wp_')) return 1000;
+                if (id.includes('helmet')) return 600;
+                if (id.includes('shield')) return 500;
+                if (id.includes('vest')) return 400;
+                if (id.includes('tool')) return 500;
+                return -1;
+            }
+
+            cleanDisplayName(name) {
+                return name
+                    .replace(/^(WP_[A-Z]_|TOOL_|Mod_|Consumable_)/g, '')
+                    .replace(/_+/g, ' ')
+                    .replace(/\b\w+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            getItemIcon(baseItemId) {
+                const config = this.getItemConfig(baseItemId);
+                        
+                if (config.icon && config.icon !== this.getDefaultIcon(baseItemId)) {
+                    // Use remote icons URL
+                    return `${this.remoteIconsUrl}${config.icon}`;
+                }
+                
+                return this.createPlaceholderIcon(baseItemId);
+            }
+
+            getDefaultIcon(baseItemId) {
+                return `${baseItemId.substring(0, 8)}.png`;
+            }
+
+            createPlaceholderIcon(baseItemId) {
+                return `data:image/svg+xml;base64,${btoa(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
+                        <rect width="60" height="60" fill="#4a5568"/>
+                        <text x="30" y="30" text-anchor="middle" fill="#e0e0e0" font-family="Arial" font-size="6">
+                            ${baseItemId.substring(0, 10)}
+                        </text>
+                        <text x="30" y="42" text-anchor="middle" fill="#a0aec0" font-family="Arial" font-size="5">
+                            ${baseItemId.substring(10, 20)}
+                        </text>
+                    </svg>
+                `)}`;
+            }
+
+            generateUUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+
+            updateStatus(message) {
+                document.getElementById('status-text').textContent = message;
+                console.log(message);
+            }
+
+            guessMaxStackSize(baseItemId) {
+                const id = baseItemId.toLowerCase();
+
+                // Special cases for unlimited stacking
+                if (id.includes('oldcurrency') || id.includes('old_currency')) return 999999;
+
+                if (id.includes('consumable') || id.includes('grenade')) return 5;
+                if (id.includes('light') || id.includes('medium') || id.includes('heavy') || id.includes('shotgun') || id.includes('special')) return 250;
+                if (id.includes('veltecite') || id.includes('nickel') || id.includes('materials')) return 100;
+                if (id.includes('wp_') || id.includes('helmet') || id.includes('shield') || id.includes('bag') || id.includes('vest')) return 1;
+                return 20; // Default for other items
+            }
+            
+            splitStacks(inventory) {
+                const newInventory = [];
+                        
+                inventory.forEach(item => {
+                    const config = this.getItemConfig(item.baseItemId);
+                    const maxStack = config.maxStackSize || 50;
+                    
+                    if (item.amount <= maxStack) {
+                        newInventory.push(item);
+                    } else {
+                        // Split into multiple stacks
+                        let remainingAmount = item.amount;
+                        while (remainingAmount > 0) {
+                            const stackAmount = Math.min(remainingAmount, maxStack);
+                            newInventory.push({
+                                ...item,
+                                itemId: this.generateUUID(),
+                                amount: stackAmount
+                            });
+                            remainingAmount -= stackAmount;
+                        }
+                    }
+                });
+                
+                return newInventory;
+            }
+            
+            updateConnectionStatus(connected) {
+                const indicator = document.getElementById('connection-indicator');
+                const text = document.getElementById('connection-text');
+                
+                if (connected) {
+                    indicator.classList.add('connected');
+                    text.textContent = 'Connected';
+                } else {
+                    indicator.classList.remove('connected');
+                    text.textContent = 'Disconnected';
+                }
+            }
+
+            async pingUserStats() {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/user/ping`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ version: '1.0.0' })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.stats) {
+                            this.userStats = data.stats;
+                            this.updateStatsDisplay();
+                        }
+                    }
+                } catch (error) {
+                    console.log('Stats update failed (non-critical):', error.message);
+                }
+            }
+
+            updateStatsDisplay() {
+                const statsElement = document.getElementById('user-stats');
+                if (statsElement && this.userStats.totalUsers > 0) {
+                    statsElement.textContent = `${this.userStats.totalUsers} users`;
+                    statsElement.style.display = 'block';
+                }
+            }
+
+            startStatsUpdates() {
+                // Initial ping
+                this.pingUserStats();
+
+                // Update every 5 minutes
+                this.statsUpdateInterval = setInterval(() => {
+                    this.pingUserStats();
+                }, 5 * 60 * 1000);
+            }
+
+            createFallbackConfigs() {
+                this.itemConfigs = {};
+                this.rarityColors = {
+                    common: '#9e9e9e',
+                    uncommon: '#4caf50',
+                    rare: '#2196f3',
+                    epic: '#9c27b0',
+                    exotic: '#ff4e4e',
+                    legendary: '#ff9800'
+                };
+            }
+        }
+
+        // Initialize the editor
+        const editor = new CycleRebornEditor();
+
+        // Listen for update events from the main process (if in Electron)
+        window.addEventListener('update-available', (event) => {
+            const { version, releaseNotes } = event.detail;
+            
+            if (editor) {
+                editor.showUpdateAvailable({ version, releaseNotes });
+            }
+        });
+
+        // Console welcome message
+        console.log(`
+🎮 The Cycle: Reborn Save Editor
+🔧 Auto-Updater Enabled
+🚀 Version: ${window.electronAPI ? 'Electron App' : 'Web Version'}
+
+Commands:
+- Ctrl+U: Check for updates (Electron only)
+- F12: Developer tools
+- Ctrl+R: Reload page
+
+Repository: https://github.com/lxjo101/TheCycleRebornEditor
+        `);
+    </script>
+
 </body>
 </html>

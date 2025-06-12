@@ -27,19 +27,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   getCurrentVersion: () => ipcRenderer.invoke('get-current-version'),
   
-  // Community features status
-  getCommunityStatus: () => ipcRenderer.invoke('get-community-status'),
-  
-  // Enhanced error handling
-  safeInvoke: async (method, ...args) => {
-    try {
-      return await ipcRenderer.invoke(method, ...args);
-    } catch (error) {
-      console.error(`IPC Error in ${method}:`, error);
-      return { success: false, error: error.message };
-    }
-  },
-  
   // Listen for update events (optional for future use)
   onUpdateAvailable: (callback) => {
     ipcRenderer.on('update-available', (event, data) => callback(data));
@@ -199,19 +186,16 @@ window.addEventListener('DOMContentLoaded', () => {
   
   // Console message for developers
   console.log(`
-🔧 The Cycle: Reborn Save Editor Community Edition
+🔧 The Cycle: Reborn Save Editor
 📦 Electron App with Auto-Updater
 🔄 Updates: Automatic checks enabled
 🎮 Game launcher integrated
 📡 MongoDB connection ready
-🌐 Community features enabled
 
 Development Commands:
 - Ctrl+U: Check for updates
 - F12: Developer tools (dev only)
 - Ctrl+R: Reload (dev only)
-- Ctrl+S: Manual save
-- Escape: Close modals
 
 GitHub: https://github.com/lxjo101/TheCycleRebornSaveEditor
   `);

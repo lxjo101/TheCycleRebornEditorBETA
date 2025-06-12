@@ -38,7 +38,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     icon: getIconPath(),
-    title: 'The Cycle: Reborn Save Editor Community Edition',
+    title: 'The Cycle: Reborn Save Editor',
     show: false, // Don't show until ready
     titleBarStyle: 'hidden', // Hide the default title bar
     frame: false // Remove the window frame completely
@@ -103,15 +103,6 @@ function createWindow() {
       event.preventDefault();
       shell.openExternal(navigationUrl);
     }
-  });
-
-  // Enhanced window event handling
-  mainWindow.on('maximize', () => {
-    mainWindow.webContents.send('window-state-changed', { maximized: true });
-  });
-
-  mainWindow.on('unmaximize', () => {
-    mainWindow.webContents.send('window-state-changed', { maximized: false });
   });
 }
 
@@ -279,9 +270,9 @@ function createMenu() {
 function showAboutDialog() {
   dialog.showMessageBox(mainWindow, {
     type: 'info',
-    title: 'About The Cycle: Reborn Save Editor Community Edition',
-    message: 'The Cycle: Reborn Save Editor Community Edition',
-    detail: `Version: ${app.getVersion()}\n\nA desktop application for editing The Cycle: Reborn save files through MongoDB with community features.\n\nCreated by the community for the community.\n\nFeatures:\n• Community inventory and loadout sharing\n• Advanced weapon attachment system\n• Faction level management\n• Automatic updates from GitHub releases\n• Game launcher integration`,
+    title: 'About The Cycle: Reborn Save Editor',
+    message: 'The Cycle: Reborn Save Editor',
+    detail: `Version: ${app.getVersion()}\n\nA desktop application for editing The Cycle: Reborn save files through MongoDB.\n\nCreated by the community for the community.\n\nFeatures automatic updates from GitHub releases.`,
     buttons: ['OK']
   });
 }
@@ -383,17 +374,6 @@ ipcMain.handle('get-current-version', () => {
   return app.getVersion();
 });
 
-// Community features status
-ipcMain.handle('get-community-status', () => {
-  return {
-    serverRunning: !!serverProcess,
-    port: SERVER_PORT,
-    apiUrl: SERVER_URL,
-    isPackaged: app.isPackaged,
-    platform: process.platform
-  };
-});
-
 // Game launcher configuration storage
 const gameConfigPath = path.join(__dirname, 'gameConfig.json');
 
@@ -418,7 +398,7 @@ function saveGameConfig(config) {
   }
 }
 
-// Enhanced game launcher IPC handlers
+// Simplified game launcher IPC handlers
 ipcMain.handle('launch-game', async () => {
   try {
     console.log('=== STARTING GAME LAUNCH ===');
@@ -525,22 +505,22 @@ ipcMain.handle('launch-game', async () => {
     console.log('Server directory:', serverDir);
     
     try {
-      const serverProcessGame = spawn(serverPath, [], {
+      const serverProcess = spawn(serverPath, [], {
         detached: true,
         stdio: ['ignore', 'ignore', 'ignore'],
         shell: false,
         cwd: serverDir
       });
       
-      console.log('Server spawn successful, PID:', serverProcessGame.pid);
-      serverProcessGame.unref();
+      console.log('Server spawn successful, PID:', serverProcess.pid);
+      serverProcess.unref();
       
       // Wait a moment
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Check if process is still running
       try {
-        process.kill(serverProcessGame.pid, 0); // Test if process exists
+        process.kill(serverProcess.pid, 0); // Test if process exists
         console.log('✓ Server process is running');
       } catch (e) {
         console.log('WARNING: Server process may have exited');
@@ -582,21 +562,14 @@ ipcMain.handle('launch-game', async () => {
     console.log('=== LAUNCH COMPLETE ===');
     return {
       success: true,
-      message: 'Game launched successfully!',
-      details: {
-        serverStarted: true,
-        clientStarted: true,
-        gamePath: gamePath,
-        serverPath: serverPath
-      }
+      message: 'Game launched successfully!'
     };
 
   } catch (error) {
     console.error('FATAL ERROR in launch-game:', error);
     return {
       success: false,
-      message: `Fatal error: ${error.message}`,
-      error: error.toString()
+      message: `Fatal error: ${error.message}`
     };
   }
 });
@@ -608,15 +581,7 @@ ipcMain.handle('configure-game-paths', async () => {
       fs.unlinkSync(gameConfigPath);
     }
     
-    // Show configuration dialog
-    const result = await dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Game Configuration Reset',
-      message: 'Game paths have been cleared.',
-      detail: 'The next time you launch the game, you will be prompted to select the game files again.',
-      buttons: ['OK']
-    });
-    
+    // The next launch will prompt for folder selection
     return true;
   } catch (error) {
     console.error('Error clearing game config:', error);
@@ -632,37 +597,11 @@ ipcMain.handle('check-game-configured', async () => {
     // Verify the paths still exist and have the required files
     const clientPath = path.join(config.gamePath, 'Prospect', 'Binaries', 'Win64', 'Prospect.Client.Loader.exe');
     
-    const serverExists = fs.existsSync(config.serverPath);
-    const clientExists = fs.existsSync(clientPath);
-    
-    return {
-      configured: serverExists && clientExists,
-      serverExists,
-      clientExists,
-      serverPath: config.serverPath,
-      clientPath
-    };
+    return fs.existsSync(config.serverPath) && fs.existsSync(clientPath);
   } catch (error) {
     console.error('Error checking game configuration:', error);
-    return {
-      configured: false,
-      error: error.message
-    };
+    return false;
   }
-});
-
-// Enhanced error handling for IPC
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception in main process:', error);
-  // Don't exit in production, just log
-  if (process.env.NODE_ENV !== 'production') {
-    process.exit(1);
-  }
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit in production, just log
 });
 
 // Export for testing
