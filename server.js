@@ -665,6 +665,49 @@ app.post('/api/community/loadouts/:id/download', async (req, res) => {
     }
 });
 
+app.post('/api/community/loadouts/:id/rate', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { rating } = req.body;
+        
+        if (![1, -1].includes(rating)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Rating must be 1 (like) or -1 (dislike)'
+            });
+        }
+        
+        const loadout = communityLoadouts.get(id);
+        if (!loadout) {
+            return res.status(404).json({
+                success: false,
+                message: 'Loadout not found'
+            });
+        }
+        
+        loadout.ratings.set(req.user.id, rating);
+        
+        const ratings = Array.from(loadout.ratings.values());
+        const avgRating = ratings.length > 0 ? 
+            ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0;
+        loadout.rating = Math.round((avgRating + 1) * 2.5 * 10) / 10;
+        
+        res.json({
+            success: true,
+            rating: loadout.rating,
+            userRating: rating,
+            message: 'Rating submitted successfully'
+        });
+        
+    } catch (error) {
+        console.error('Error rating loadout:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to submit rating'
+        });
+    }
+});
+
 // Loadout effectiveness analysis
 function calculateLoadoutEffectiveness(loadout) {
     const metrics = analyzeLoadoutMetrics(loadout);
@@ -828,19 +871,23 @@ app.post('/api/attachments/presets', requireAuth, async (req, res) => {
 // Faction levels endpoints
 app.get('/api/factions', async (req, res) => {
     try {
-        if (!db) {
-            return res.status(400).json({
-                success: false,
-                message: 'Database not connected'
-            });
-        }
+        let factionLevels = { ica: 0, korolev: 0, osiris: 0 };
         
-        // Mock faction data
-        const factionLevels = {
-            ica: 0,
-            korolev: 0,
-            osiris: 0
-        };
+        if (db) {
+            try {
+                const collection = db.collection(COLLECTION_NAME);
+                const factionDoc = await collection.findOne({ Key: 'FactionLevels' });
+                
+                if (factionDoc && factionDoc.Value) {
+                    const parsedLevels = typeof factionDoc.Value === 'string' 
+                        ? JSON.parse(factionDoc.Value) 
+                        : factionDoc.Value;
+                    factionLevels = { ...factionLevels, ...parsedLevels };
+                }
+            } catch (dbError) {
+                console.warn('Database read failed, using default faction levels:', dbError);
+            }
+        }
         
         res.json({
             success: true,
@@ -870,7 +917,27 @@ app.put('/api/factions', async (req, res) => {
             }
         }
         
-        console.log('Saving faction levels:', levels);
+        if (db) {
+            try {
+                const collection = db.collection(COLLECTION_NAME);
+                
+                // Try to update existing faction document
+                const result = await collection.updateOne(
+                    { Key: 'FactionLevels' },
+                    { 
+                        $set: { 
+                            Value: JSON.stringify(levels),
+                            LastUpdated: new Date().toISOString()
+                        }
+                    },
+                    { upsert: true }
+                );
+                
+                console.log('Faction levels saved to database:', levels);
+            } catch (dbError) {
+                console.warn('Database save failed, continuing without DB save:', dbError);
+            }
+        }
         
         res.json({
             success: true,
@@ -970,7 +1037,8 @@ app.post('/api/connect', async (req, res) => {
             success: true, 
             message: `Connected to MongoDB successfully - Found ${count} total documents.`,
             totalDocuments: count,
-            inventoryDocuments: inventoryCount
+            inventoryDocuments: inventoryCount,
+            connected: true
         });
     } catch (error) {
         console.error('MongoDB connection error:', error);
@@ -978,7 +1046,8 @@ app.post('/api/connect', async (req, res) => {
             success: false, 
             message: 'Failed to connect to MongoDB', 
             error: error.message,
-            details: error.toString()
+            details: error.toString(),
+            connected: false
         });
     }
 });
@@ -1383,7 +1452,13 @@ app.get('/api/community/stats', (req, res) => {
             totalDownloads: Array.from(communityInventories.values()).reduce((sum, inv) => sum + inv.downloads, 0) +
                            Array.from(communityLoadouts.values()).reduce((sum, load) => sum + load.downloads, 0),
             topTags: getTopTags(),
-            recentActivity: getRecentActivity()
+            recentActivity: getRecentActivity(),
+            serverInfo: {
+                uptime: process.uptime(),
+                version: '2.0.0',
+                nodeVersion: process.version,
+                platform: process.platform
+            }
         };
 
         res.json({
@@ -1469,12 +1544,14 @@ app.post('/api/admin/moderate', requireAuth, async (req, res) => {
     }
 });
 
-// Health check endpoint
+// Enhanced health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         connected: !!db,
         timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
         communityFeatures: {
             inventoriesCount: communityInventories.size,
             loadoutsCount: communityLoadouts.size,
@@ -1486,8 +1563,11 @@ app.get('/api/health', (req, res) => {
             database: DB_NAME,
             collection: COLLECTION_NAME,
             inventoryKey: INVENTORY_KEY,
-            githubIntegration: !!GITHUB_TOKEN
-        }
+            githubIntegration: !!GITHUB_TOKEN,
+            port: PORT,
+            nodeEnv: process.env.NODE_ENV || 'development'
+        },
+        version: '2.0.0'
     });
 });
 
@@ -1505,7 +1585,9 @@ app.use((error, req, res, next) => {
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        message: 'Endpoint not found'
+        message: 'Endpoint not found',
+        path: req.path,
+        method: req.method
     });
 });
 
@@ -1721,76 +1803,131 @@ function initializeSampleData() {
     console.log(`- ${sampleAttachmentPresets.length} attachment presets`);
 }
 
+// Cleanup old rate limit entries periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, data] of rateLimitMap.entries()) {
+        if (now > data.resetTime) {
+            rateLimitMap.delete(ip);
+        }
+    }
+}, 5 * 60 * 1000); // Clean up every 5 minutes
+
+// Enhanced error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Don't exit in production, just log the error
+    if (process.env.NODE_ENV !== 'production') {
+        process.exit(1);
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit in production, just log the error
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log('='.repeat(60));
-    console.log('🎮 The Cycle: Reborn Save Editor - Community Edition Backend');
-    console.log('='.repeat(60));
+    console.log('='.repeat(70));
+    console.log('🎮 The Cycle: Reborn Save Editor - Community Edition Backend v2.0');
+    console.log('='.repeat(70));
     console.log('Enhanced Features:');
-    console.log('  🌐 Community Inventories & Loadouts');
-    console.log('  🔧 Weapon Attachment System');
-    console.log('  ⚔️ Advanced Loadout Editor');
-    console.log('  🏛️ Faction Level Management');
-    console.log('  🔐 GitHub Integration & Authentication');
-    console.log('  📊 Community Statistics & Analytics');
-    console.log('  🛡️ Content Moderation & Rate Limiting');
+    console.log('  🌐 Community Inventories & Loadouts with Rating System');
+    console.log('  🔧 Advanced Weapon Attachment System with Presets');
+    console.log('  ⚔️ Comprehensive Loadout Editor with Effectiveness Analysis');
+    console.log('  🏛️ Faction Level Management with Database Persistence');
+    console.log('  🔐 Multi-Authentication System (GitHub + Simple)');
+    console.log('  📊 Real-time Community Statistics & Analytics');
+    console.log('  🛡️ Content Moderation & Advanced Rate Limiting');
+    console.log('  🚀 Auto-updater Integration with GitHub Releases');
+    console.log('  🎯 Game Launcher Integration for Direct Play');
     console.log('');
     console.log('Database Configuration:');
-    console.log(`  URL: ${MONGO_URL}`);
+    console.log(`  MongoDB URL: ${MONGO_URL.replace(/\/\/.*@/, '//***:***@')}`);
     console.log(`  Database: ${DB_NAME}`);
     console.log(`  Collection: ${COLLECTION_NAME}`);
     console.log(`  Inventory Key: "${INVENTORY_KEY}"`);
-    console.log('');
-    console.log('API Endpoints:');
-    console.log('  Core Features:');
-    console.log('    POST /api/connect         - Connect to MongoDB');
-    console.log('    GET  /api/inventory       - Load inventory');
-    console.log('    PUT  /api/inventory       - Save inventory');
-    console.log('    GET  /api/balance         - Get currency balance');
-    console.log('    PUT  /api/balance         - Save currency balance');
-    console.log('    GET  /api/factions        - Get faction levels');
-    console.log('    PUT  /api/factions        - Save faction levels');
-    console.log('');
-    console.log('  Authentication:');
-    console.log('    POST /api/auth/simple     - Simple username auth');
-    console.log('    POST /api/auth/github     - GitHub OAuth auth');
-    console.log('    POST /api/auth/logout     - Logout user');
-    console.log('');
-    console.log('  Community Features:');
-    console.log('    GET  /api/community/inventories     - Browse inventories');
-    console.log('    POST /api/community/inventories     - Upload inventory');
-    console.log('    GET  /api/community/loadouts        - Browse loadouts');
-    console.log('    POST /api/community/loadouts        - Upload loadout');
-    console.log('    GET  /api/community/stats           - Community statistics');
-    console.log('');
-    console.log('  Weapon Attachments:');
-    console.log('    GET  /api/attachments/compatible/:weaponId - Get compatible attachments');
-    console.log('    GET  /api/attachments/presets/:weaponId   - Get attachment presets');
-    console.log('    POST /api/attachments/presets             - Save attachment preset');
-    console.log('');
-    console.log('  Administration:');
-    console.log('    POST /api/admin/moderate  - Content moderation');
-    console.log('    GET  /api/health          - Health check');
-    console.log('');
-    console.log('Security Features:');
-    console.log('  ✅ Rate limiting on community endpoints');
-    console.log('  ✅ Input sanitization and validation');
-    console.log('  ✅ Content moderation system');
-    console.log('  ✅ Session-based authentication');
-    console.log('  ✅ GitHub API integration with token support');
     console.log('');
     console.log('GitHub Integration:');
     console.log(`  Repository: ${COMMUNITY_REPO_OWNER}/${COMMUNITY_REPO_NAME}`);
     console.log(`  Token configured: ${!!GITHUB_TOKEN}`);
     console.log('');
-    console.log('='.repeat(60));
-    console.log('🚀 Open http://localhost:3000 in your browser to start');
-    console.log('📖 API documentation available at /api/health');
+    console.log('API Endpoints:');
+    console.log('  Core Database Features:');
+    console.log('    POST /api/connect           - Connect to MongoDB');
+    console.log('    GET  /api/inventory         - Load user inventory');
+    console.log('    PUT  /api/inventory         - Save user inventory');
+    console.log('    GET  /api/balance           - Get currency balance');
+    console.log('    PUT  /api/balance           - Save currency balance');
+    console.log('    GET  /api/factions          - Get faction levels');
+    console.log('    PUT  /api/factions          - Save faction levels');
     console.log('');
-
+    console.log('  Authentication System:');
+    console.log('    POST /api/auth/simple       - Simple username authentication');
+    console.log('    POST /api/auth/github       - GitHub OAuth authentication');
+    console.log('    POST /api/auth/logout       - User logout');
+    console.log('');
+    console.log('  Community Features:');
+    console.log('    GET  /api/community/inventories           - Browse community inventories');
+    console.log('    POST /api/community/inventories           - Upload inventory to community');
+    console.log('    GET  /api/community/inventories/:id       - Get specific inventory');
+    console.log('    POST /api/community/inventories/:id/download - Download inventory');
+    console.log('    POST /api/community/inventories/:id/rate     - Rate inventory');
+    console.log('    GET  /api/community/loadouts              - Browse community loadouts');
+    console.log('    POST /api/community/loadouts              - Upload loadout to community');
+    console.log('    POST /api/community/loadouts/:id/download - Download loadout');
+    console.log('    POST /api/community/loadouts/:id/rate     - Rate loadout');
+    console.log('    GET  /api/community/stats                 - Community statistics');
+    console.log('');
+    console.log('  Weapon Attachment System:');
+    console.log('    GET  /api/attachments/compatible/:weaponId - Get compatible attachments');
+    console.log('    GET  /api/attachments/presets/:weaponId   - Get weapon attachment presets');
+    console.log('    POST /api/attachments/presets             - Save attachment preset');
+    console.log('');
+    console.log('  Administration & Monitoring:');
+    console.log('    POST /api/admin/moderate    - Content moderation (admin only)');
+    console.log('    POST /api/user/ping         - User activity tracking');
+    console.log('    GET  /api/health            - Server health check & diagnostics');
+    console.log('');
+    console.log('Security & Performance:');
+    console.log('  ✅ Rate limiting: 50 requests/15min per IP on community endpoints');
+    console.log('  ✅ Input sanitization and validation on all user content');
+    console.log('  ✅ XSS protection with script tag filtering');
+    console.log('  ✅ CORS configured for Electron and web environments');
+    console.log('  ✅ Session-based authentication with secure tokens');
+    console.log('  ✅ Graceful error handling and logging');
+    console.log('  ✅ Memory cleanup for rate limiting and sessions');
+    console.log('');
+    console.log('Data Features:');
+    console.log('  📦 In-memory community storage with Map structures');
+    console.log('  🔄 Auto-sync with GitHub repositories (when configured)');
+    console.log('  📊 Real-time analytics and user activity tracking');
+    console.log('  🎯 Loadout effectiveness scoring algorithm');
+    console.log('  ⭐ Community rating system with aggregated scores');
+    console.log('  🏷️ Advanced tagging and categorization system');
+    console.log('');
+    console.log('Integration Support:');
+    console.log('  🖥️  Electron desktop application ready');
+    console.log('  🌐 Web browser compatible');
+    console.log('  🎮 Game launcher integration');
+    console.log('  🔄 Auto-updater system support');
+    console.log('  📱 Cross-platform compatibility');
+    console.log('');
+    console.log('='.repeat(70));
+    console.log('🚀 Server ready! Open http://localhost:3000 in your browser');
+    console.log('📖 API documentation: GET /api/health');
+    console.log('🎯 Community features: Authentication required for uploads');
+    console.log('🔧 Admin panel: Use admin username for moderation access');
+    console.log('');
+    
     // Initialize sample data for demonstration
+    console.log('Initializing sample community data...');
     initializeSampleData();
+    
+    console.log('✅ Server initialization complete!');
+    console.log('Ready to accept connections from Electron frontend...');
 });
 
 module.exports = app;
